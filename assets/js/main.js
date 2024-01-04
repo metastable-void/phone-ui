@@ -125,6 +125,7 @@ class DtmfTone {
             this.oscillators = [];
             this.context.close();
             delete this.context;
+            this.minDurationElapsed = false;
             this.playing = false;
         }
     }

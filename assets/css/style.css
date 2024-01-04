@@ -42,12 +42,12 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 8vmin;
+    font-size: 10vmin;
     font-weight: bold;
-    inline-size: 12vmin !important;
-    block-size: 12vmin !important;
+    inline-size: 15vmin !important;
+    block-size: 15vmin !important;
     overflow: hidden;
-    border-radius: 6vmin;
+    border-radius: 7.5vmin;
     appearance: none;
     border: none;
     background-color: #fff;
@@ -56,6 +56,8 @@ body {
     -webkit-user-select: none;
     -moz-user-select: none;
     user-select: none;
+    margin: 0;
+    padding: 0;
 }
 
 #panel > button:active {
