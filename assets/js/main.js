@@ -71,6 +71,12 @@ class AudioContextHost {
                 this.#closeContext();
             }
         });
+        document.addEventListener('pageshow', () => {
+            this.#createContext();
+        });
+        document.addEventListener('pagehide', () => {
+            this.#closeContext();
+        });
     }
 
     #createContext() {
