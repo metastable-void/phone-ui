@@ -58,10 +58,10 @@ body {
     user-select: none;
     margin: 0;
     padding: 0;
-    transition: all 0s 0.1s;
+    transition: all 0s 0.15s;
 }
 
-#panel > button:active {
+#panel > button.active {
     box-shadow: 0 0 0 0.5vmin #333, inset 0 0 1vmin #333;
     background-color: #eee;
     transition: unset;

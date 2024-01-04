@@ -1,9 +1,15 @@
 
-class DtmfTone {
+class AudioContextHost {
     static MIN_DURATION = 150;
 
-    static getFrequencies(key) {
-        let freq = [0, 0];
+    #context = null;
+    #oscillators = [];
+    #count = 0;
+    #playRequested = false;
+    #minDurationElapsed = false;
+
+    static getDtmfFrequencies(key) {
+        let freq = [];
         switch (String(key).charAt(0).toUpperCase()) {
             case '1':
                 freq = [697, 1209];
@@ -57,96 +63,109 @@ class DtmfTone {
         return freq;
     }
 
-    constructor(key) {
-        this.key = key;
-        this.frequencies = DtmfTone.getFrequencies(key);
-        this.oscillators = [];
-        this.gainNode = null;
-        this.context = null;
-        this.minDurationElapsed = false;
-        this.isKeyDown = false;
-        this.playing = false;
+    constructor() {
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                this.#createContext();
+            } else {
+                this.#closeContext();
+            }
+        });
     }
 
-    #createOscillator(context, frequency) {
-        let oscillator = context.createOscillator();
-        oscillator.type = 'sine';
-        oscillator.frequency.value = frequency;
-        return oscillator;
-    }
-
-    #createGainNode(context, gain) {
-        let gainNode = context.createGain();
-        gainNode.gain.value = gain;
-        return gainNode;
-    }
-
-    play() {
-        this.isKeyDown = true;
-        if (!this.playing) {
-            let context = new AudioContext({latencyHint: 'interactive', frequency: 8000});
-            this.oscillators = this.frequencies.map(f => this.#createOscillator(context, f));
-            this.gainNode = this.#createGainNode(context, 0.4);
-            this.gainNode.connect(context.destination);
-            this.oscillators.forEach(o => o.connect(this.gainNode));
-            this.oscillators.forEach(o => o.start());
-            this.context = context;
-            this.minDurationElapsed = false;
-            this.playing = true;
-            setTimeout(() => {
-                this.minDurationElapsed = true;
-                if (!this.isKeyDown) {
-                    this.#stopInternal();
-                }
-            }, DtmfTone.MIN_DURATION);
+    #createContext() {
+        if (!this.#context) {
+            this.#context = new AudioContext({latencyHint: 'interactive', frequency: 8000});
         }
     }
 
-    stop() {
-        this.isKeyDown = false;
-        if (this.playing && this.minDurationElapsed) {
-            this.#stopInternal();
+    #closeContext() {
+        if (this.#context) {
+            this.#context.close();
+            this.#context = null;
         }
     }
 
-    #stopInternal() {
-        if (this.playing) {
-            this.gainNode.gain.linearRampToValueAtTime(0, this.context.currentTime + 0.05);
-            setTimeout(() => this.#discard(), 100);
-        }
+    get active() {
+        return this.#context != null;
     }
 
-    #discard() {
-        if (this.playing) {
-            this.oscillators.forEach(o => o.stop());
-            this.oscillators.forEach(o => o.disconnect());
-            this.gainNode.disconnect();
-            this.gainNode = null;
-            this.oscillators = [];
-            this.context.close();
-            delete this.context;
-            this.minDurationElapsed = false;
-            this.playing = false;
+    get playing() {
+        return this.#playRequested;
+    }
+
+    playTone(frequencies) {
+        this.#stopToneInternal();
+        if (!this.active) {
+            return;
+        }
+        ++this.#count;
+        this.#playRequested = true;
+        this.#minDurationElapsed = false;
+        this.#oscillators = frequencies.map(f => {
+            const oscillator = this.#context.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.value = f;
+            oscillator.connect(this.#context.destination);
+            return oscillator;
+        });
+        this.#oscillators.forEach(o => o.start());
+        const currentCount = this.#count;
+        setTimeout(() => {
+            if (currentCount != this.#count) {
+                return;
+            }
+            this.#minDurationElapsed = true;
+            if (!this.#playRequested) {
+                this.#stopToneInternal();
+            }
+        }, AudioContextHost.MIN_DURATION);
+    }
+
+    playDtmfTone(key) {
+        this.playTone(AudioContextHost.getDtmfFrequencies(key));
+    }
+
+    #stopToneInternal() {
+        if (this.active) {
+            this.#oscillators.forEach(o => o.stop());
+            this.#oscillators.forEach(o => o.disconnect());
+        }
+        this.#oscillators.length = 0;
+    }
+
+    stopTone() {
+        this.#playRequested = false;
+        if (this.#minDurationElapsed) {
+            this.#stopToneInternal();
         }
     }
 }
 
+const host = new AudioContextHost();
+
 const keypads = document.querySelectorAll('.keypad');
-const dtmfTones = {};
 for (const keypad of keypads) {
     const key = keypad.dataset.value;
-    dtmfTones[key] = new DtmfTone(key);
     keypad.addEventListener('pointerdown', (ev) => {
         ev.preventDefault();
-        dtmfTones[key].play();
+        host.playDtmfTone(key);
+        keypad.classList.add('active');
     });
     keypad.addEventListener('pointerup', (ev) => {
         ev.preventDefault();
-        dtmfTones[key].stop();
+        host.stopTone();
+        keypad.classList.remove('active');
     });
+    keypad.addEventListener('pointercancel', (ev) => {
+        ev.preventDefault();
+        host.stopTone();
+        keypad.classList.remove('active');
+    })
     keypad.addEventListener('pointerleave', (ev) => {
         ev.preventDefault();
-        dtmfTones[key].stop();
+        host.stopTone();
+        keypad.classList.remove('active');
     });
 }
 
