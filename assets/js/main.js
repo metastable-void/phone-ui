@@ -71,10 +71,10 @@ class AudioContextHost {
                 this.#closeContext();
             }
         });
-        document.addEventListener('pageshow', () => {
+        window.addEventListener('pageshow', () => {
             this.#createContext();
         });
-        document.addEventListener('pagehide', () => {
+        window.addEventListener('pagehide', () => {
             this.#closeContext();
         });
     }
@@ -105,6 +105,7 @@ class AudioContextHost {
         if (!this.active) {
             return;
         }
+        this.#context.resume();
         ++this.#count;
         this.#playRequested = true;
         this.#minDurationElapsed = false;
@@ -150,30 +151,32 @@ class AudioContextHost {
 
 const host = new AudioContextHost();
 
-const keypads = document.querySelectorAll('.keypad');
-for (const keypad of keypads) {
-    const key = keypad.dataset.value;
-    keypad.addEventListener('pointerdown', (ev) => {
-        ev.preventDefault();
-        host.playDtmfTone(key);
-        keypad.classList.add('active');
-    });
-    keypad.addEventListener('pointerup', (ev) => {
-        ev.preventDefault();
-        host.stopTone();
-        keypad.classList.remove('active');
-    });
-    keypad.addEventListener('pointercancel', (ev) => {
-        ev.preventDefault();
-        host.stopTone();
-        keypad.classList.remove('active');
-    })
-    keypad.addEventListener('pointerleave', (ev) => {
-        ev.preventDefault();
-        host.stopTone();
-        keypad.classList.remove('active');
-    });
-}
+window.addEventListener('load', () => {
+    const keypads = document.querySelectorAll('.keypad');
+    for (const keypad of keypads) {
+        const key = keypad.dataset.value;
+        keypad.addEventListener('pointerdown', (ev) => {
+            ev.preventDefault();
+            host.playDtmfTone(key);
+            keypad.classList.add('active');
+        });
+        keypad.addEventListener('pointerup', (ev) => {
+            ev.preventDefault();
+            host.stopTone();
+            keypad.classList.remove('active');
+        });
+        keypad.addEventListener('pointercancel', (ev) => {
+            ev.preventDefault();
+            host.stopTone();
+            keypad.classList.remove('active');
+        })
+        keypad.addEventListener('pointerleave', (ev) => {
+            ev.preventDefault();
+            host.stopTone();
+            keypad.classList.remove('active');
+        });
+    }
+});
 
 document.addEventListener('touchstart', (ev) => {
     if (ev.target.classList.contains('keypad')) {
