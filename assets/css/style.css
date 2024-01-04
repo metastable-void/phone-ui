@@ -18,7 +18,7 @@ body {
 #main {
     display: flex;
     flex-direction: column;
-    inline-size: 80vmin;
+    inline-size: 90vmin;
     margin-inline-start: auto;
     margin-inline-end: auto;
 }
@@ -27,11 +27,11 @@ body {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr 1fr 1fr;
-    margin-inline-start: 10vmin;
-    margin-inline-end: 10vmin;
+    margin-inline-start: 5vmin;
+    margin-inline-end: 5vmin;
     margin-block-start: 5vmin;
     margin-block-end: 5vmin;
-    block-size: 60vmin;
+    block-size: 75vmin;
     justify-items: center;
     align-items: center;
     border-radius: 5vmin;
@@ -44,9 +44,10 @@ body {
     align-items: center;
     font-size: 8vmin;
     font-weight: bold;
-    inline-size: 10vmin;
-    block-size: 10vmin;
-    border-radius: 50%;
+    inline-size: 12vmin !important;
+    block-size: 12vmin !important;
+    overflow: hidden;
+    border-radius: 6vmin;
     appearance: none;
     border: none;
     background-color: #fff;

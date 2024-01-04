@@ -1,5 +1,7 @@
 
 class DtmfTone {
+    static MIN_DURATION = 150;
+
     static getFrequencies(key) {
         let freq = [0, 0];
         switch (String(key).charAt(0).toUpperCase()) {
@@ -59,6 +61,10 @@ class DtmfTone {
         this.key = key;
         this.frequencies = DtmfTone.getFrequencies(key);
         this.oscillators = [];
+        this.gainNode = null;
+        this.context = null;
+        this.minDurationElapsed = false;
+        this.isKeyDown = false;
         this.playing = false;
     }
 
@@ -69,21 +75,53 @@ class DtmfTone {
         return oscillator;
     }
 
+    #createGainNode(context, gain) {
+        let gainNode = context.createGain();
+        gainNode.gain.value = gain;
+        return gainNode;
+    }
+
     play() {
+        this.isKeyDown = true;
         if (!this.playing) {
             let context = new AudioContext();
             this.oscillators = this.frequencies.map(f => this.#createOscillator(context, f));
-            this.oscillators.forEach(o => o.connect(context.destination));
+            this.gainNode = this.#createGainNode(context, 0.4);
+            this.gainNode.connect(context.destination);
+            this.oscillators.forEach(o => o.connect(this.gainNode));
             this.oscillators.forEach(o => o.start());
             this.context = context;
+            this.minDurationElapsed = false;
             this.playing = true;
+            setTimeout(() => {
+                this.minDurationElapsed = true;
+                if (!this.isKeyDown) {
+                    this.#stopInternal();
+                }
+            }, DtmfTone.MIN_DURATION);
         }
     }
 
     stop() {
+        this.isKeyDown = false;
+        if (this.playing && this.minDurationElapsed) {
+            this.#stopInternal();
+        }
+    }
+
+    #stopInternal() {
+        if (this.playing) {
+            this.gainNode.gain.linearRampToValueAtTime(0, this.context.currentTime + 0.05);
+            setTimeout(() => this.#discard(), 100);
+        }
+    }
+
+    #discard() {
         if (this.playing) {
             this.oscillators.forEach(o => o.stop());
             this.oscillators.forEach(o => o.disconnect());
+            this.gainNode.disconnect();
+            this.gainNode = null;
             this.oscillators = [];
             this.context.close();
             delete this.context;
@@ -105,10 +143,14 @@ for (const keypad of keypads) {
         ev.preventDefault();
         dtmfTones[key].stop();
     });
+    keypad.addEventListener('pointerleave', (ev) => {
+        ev.preventDefault();
+        dtmfTones[key].stop();
+    });
 }
 
 document.addEventListener('touchstart', (ev) => {
     if (ev.target.classList.contains('keypad')) {
         ev.preventDefault();
     }
-});
+}, {passive: false});
