@@ -84,7 +84,7 @@ class DtmfTone {
     play() {
         this.isKeyDown = true;
         if (!this.playing) {
-            let context = new AudioContext();
+            let context = new AudioContext({latencyHint: 'interactive', frequency: 8000});
             this.oscillators = this.frequencies.map(f => this.#createOscillator(context, f));
             this.gainNode = this.#createGainNode(context, 0.4);
             this.gainNode.connect(context.destination);
